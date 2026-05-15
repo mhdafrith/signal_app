@@ -1,4 +1,4 @@
-import io, json, re, tempfile, traceback
+import io, json, re, tempfile, traceback, os
 from typing import Optional
 from difflib import SequenceMatcher
 
@@ -10,9 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # ── Constants ──────────────────────────────────────────────────────────────
 DOWNSAMPLE_N = 3000  
