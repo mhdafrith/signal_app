@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MDA Signal Viewer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    :root {
+        --bg: #f5f5f7; --surface: rgba(255, 255, 255, 0.75); --border: rgba(0,0,0,0.1);
+        --text: #1d1d1f; --text-muted: #86868b;
+        --primary: #0071e3; --primary-hover: #0077ed; --green: #34c759;
+        --card-bg: rgba(255,255,255,0.9);
+        --hero-text: #1d1d1f; --hero-grid: rgba(0,0,0,0.05);
+    }
+    [data-theme="dark"] {
+        --bg: #000000; --surface: rgba(28, 28, 30, 0.6); --border: rgba(255,255,255,0.08);
+        --text: #f5f5f7; --text-muted: #86868b;
+        --primary: #2997ff; --primary-hover: #60a5fa; --green: #30d158;
+        --card-bg: rgba(28,28,30,0.8);
+        --hero-text: #ffffff; --hero-grid: rgba(255,255,255,0.05);
+    }
+    body {
+        margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+        background: var(--bg); color: var(--text);
+        transition: background-color 0.4s ease, color 0.4s ease;
+    }
+    .site-header {
+        background: var(--surface); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid var(--border); padding: 14px 32px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: sticky; top: 0; z-index: 100;
+    }
+    .logo-name { font-family: 'Shippori Mincho', serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em;}
+    .logo-name em { font-style: normal; color: var(--primary); }
+    .theme-toggle { background: none; border: none; font-size: 20px; cursor: pointer; transition: transform 0.2s; }
+    .theme-toggle:hover { transform: scale(1.1); }
+
+    /* Hero Banner - Background transparent so it matches body perfectly */
+    .hero-section {
+        position: relative; padding: 70px 20px 80px; text-align: center;
+        background: transparent; overflow: hidden; margin-bottom: -50px;
+        transition: background-color 0.4s ease;
+    }
+    .hero-grid {
+        position: absolute; inset: 0;
+        background-image: linear-gradient(var(--hero-grid) 1px, transparent 1px),
+                          linear-gradient(90deg, var(--hero-grid) 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent);
+        -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent);
+    }
+    .hero-glow {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(59, 130, 246, 0.25) 0%, transparent 60%); pointer-events: none;
+    }
+    .hero-logo-box {
+        position: relative; z-index: 1; width: 64px; height: 64px; margin: 0 auto 24px;
+        background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(59, 130, 246, 0.4);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+    }
+    .hero-logo-box svg { width: 32px; height: 32px; stroke: var(--primary); fill: none; stroke-width: 2; }
+    .hero-section h1 { font-family: 'Shippori Mincho', serif; position: relative; z-index: 1; font-size: 44px; font-weight: 700; letter-spacing: -0.01em; color: var(--hero-text); margin: 0 0 24px 0; }
+    .hero-section h1 em { font-style: normal; color: var(--primary); }
+
+    /* Upload UI (Separated Flexbox Cards) */
+    .upload-container {
+        position: relative; z-index: 10; max-width: 860px; margin: 0 auto 60px;
+        background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border-radius: 20px; border: 1px solid var(--border); padding: 40px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
+    
+    .btn-primary {
+        background: var(--primary); color: #fff; border: none; border-radius: 30px;
+        padding: 12px 32px; font-weight: 600; font-size: 15px; cursor: pointer; 
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(29, 78, 216, 0.2); }
+
+    .upload-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    
+    .upload-card {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border: 2px dashed var(--border); border-radius: 16px; padding: 40px 20px; text-align: center; 
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer;
+        background: rgba(128,128,128,0.02); position: relative;
+    }
+    .upload-card:hover, .upload-card.dragover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); transform: translateY(-2px); }
+    
+    .uc-icon {
+        width: 52px; height: 52px; margin: 0 auto 16px; background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+    }
+    .uc-icon svg { width: 24px; height: 24px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+
+    .uc-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+    .uc-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .uc-ext { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); opacity: 0.7; letter-spacing: 0.1em; }
+
+    .file-pill {
+        display: none; align-items: center; justify-content: center; margin-top: 16px;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+        padding: 6px 16px; font-size: 12px; font-weight: 600; color: var(--text);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04); max-width: 90%; word-break: break-all;
+    }
+    .file-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 8px; flex-shrink: 0; }
+
+    /* ECG Rhythm Loading Animation */
+    .ecg-loader { width: 150px; height: 60px; margin: 0 auto 20px; display: block; }
+    .ecg-line {
+        fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+        stroke-dasharray: 300; stroke-dashoffset: 300; animation: ecg-dash 1.5s linear infinite;
+    }
+    @keyframes ecg-dash { 0% { stroke-dashoffset: 300; } 100% { stroke-dashoffset: -300; } }
+  </style>
+</head>
+<body>
+  
+  <header class="site-header">
+    <div class="logo-name">MDA Signal <em>Viewer</em></div>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+  </header>
+
+  <div class="hero-section">
+      <div class="hero-grid"></div>
+      <div class="hero-glow"></div>
+      <div class="hero-logo-box"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <h1>Measurement <em>Data</em> Signal Viewer</h1>
+  </div>
+
+  <main class="container">
+    <div class="upload-container" id="upload-container-main">
+        <h3 style="text-align:center; margin-top:0; margin-bottom: 32px; font-weight:600; font-family:'Shippori Mincho', serif; font-size:24px;">Upload Files</h3>
+        
+        <form id="upload-form" action="/analyze" method="post" enctype="multipart/form-data">
+            <div class="upload-cards">
+                
+                <label class="upload-card" id="label-dat" ondragover="this.classList.add('dragover'); event.preventDefault();" ondragleave="this.classList.remove('dragover');" ondrop="this.classList.remove('dragover'); handleDrop(event, 'file-dat', 'pill-dat')">
+                    <input type="file" name="dat_file" id="file-dat" accept=".dat" style="display:none;" onchange="updatePill('file-dat', 'pill-dat')">
+                    <div class="uc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></div>
+                    <div class="uc-title">Measurement File</div>
+                    <div class="uc-sub">Click or drag & drop file</div>
+                    <div class="uc-ext">.DAT</div>
+                    <div id="pill-dat" class="file-pill"></div>
+                </label>
+
+                <label class="upload-card" id="label-xlsx" ondragover="this.classList.add('dragover'); event.preventDefault();" ondragleave="this.classList.remove('dragover');" ondrop="this.classList.remove('dragover'); handleDrop(event, 'file-xlsx', 'pill-xlsx')">
+                    <input type="file" name="xlsx_file" id="file-xlsx" accept=".xlsx" style="display:none;" onchange="updatePill('file-xlsx', 'pill-xlsx')">
+                    <div class="uc-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                    <div class="uc-title">Source Checksheet</div>
+                    <div class="uc-sub">Optional test-case parameters</div>
+                    <div class="uc-ext">.XLSX</div>
+                    <div id="pill-xlsx" class="file-pill"></div>
+                </label>
+
+            </div>
+            
+            <div style="text-align: center;">
+                <button type="button" id="proceed-btn" class="btn-primary">Proceed to Analysis</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="loader" style="display:none; text-align:center; padding: 60px 0;">
+       <svg class="ecg-loader" viewBox="0 0 150 50"><polyline class="ecg-line" points="0,25 30,25 40,10 50,45 60,5 70,35 80,25 150,25"></polyline></svg>
+       <h3 style="color:var(--text); font-weight:600; font-family:'Inter',sans-serif; margin-bottom:8px;">Processing Signal Data...</h3>
+       <p style="color:var(--text-muted); font-size:14px; margin:0;">Parsing configurations and generating V-Graph layout.</p>
+    </div>
+  </main>
+  
+  <script>
+    const themeBtn = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+
+    function applyTheme(theme) {
+        if (theme === 'dark') { root.setAttribute('data-theme', 'dark'); if(themeBtn) themeBtn.textContent = '☀️'; } 
+        else { root.removeAttribute('data-theme'); if(themeBtn) themeBtn.textContent = '🌙'; }
+        localStorage.setItem('theme', theme);
+    }
+    const savedTheme = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(savedTheme);
+
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const current = root.getAttribute('data-theme');
+            applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    function handleDrop(e, inputId, pillId) {
+        e.preventDefault();
+        const dt = e.dataTransfer;
+        if (dt.files.length) {
+            document.getElementById(inputId).files = dt.files;
+            updatePill(inputId, pillId);
+        }
+    }
+    function updatePill(inputId, pillId) {
+        const inp = document.getElementById(inputId);
+        const pill = document.getElementById(pillId);
+        if (inp.files.length > 0) {
+            pill.style.display = 'inline-flex';
+            pill.innerHTML = `<span class="dot"></span> ${inp.files[0].name}`;
+        }
+    }
+
+    document.getElementById('proceed-btn').addEventListener('click', function(e) {
+        const datFile = document.getElementById('file-dat').files.length;
+        if (!datFile) { alert("Please upload a Measurement File (.DAT) to proceed."); return; }
+        
+        document.getElementById('upload-container-main').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('upload-container-main').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+        }, 200);
+        document.getElementById('upload-form').submit();
+    });
+  </script>
+</body>
+</html>
