@@ -1474,7 +1474,7 @@ def build_viewer_html(df, time_col, filename="data", signal_cols=None, in_blocks
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 @app.post("/analyze", response_class=HTMLResponse)
 async def analyze(request: Request, dat_file: UploadFile = File(...), xlsx_file: UploadFile = File(None)):
@@ -1526,14 +1526,17 @@ async def analyze(request: Request, dat_file: UploadFile = File(...), xlsx_file:
         prev_in_blocks = tc.get("in_blocks", [])
         prev_exp_list = tc.get("expected_list", [])
 
-    return templates.TemplateResponse("results.html", {
-        "request": request,
-        "filename": dat_file.filename,
-        "all_signals_html": all_signals_html,
-        "dat_html": dat_html,
-        "checksheet_html": checksheet_html,
-        "test_cases": tc_render_data
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="results.html",
+        context={
+            "filename": dat_file.filename,
+            "all_signals_html": all_signals_html,
+            "dat_html": dat_html,
+            "checksheet_html": checksheet_html,
+            "test_cases": tc_render_data
+        }
+    )
 
 if __name__ == "__main__":
     print("🚀 Starting FastAPI Server on http://127.0.0.1:8000")
