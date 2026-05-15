@@ -8,4 +8,4 @@ numpy>=1.24.0
 
 # ── Optional: MDF/MF4 automotive format support ───────────────────────────────
 # Uncomment if you need to open binary MDF files from CANape / INCA / MDA etc.
-# asammdf>=7.3.0
+asammdf>=7.3.0
